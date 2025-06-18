@@ -1,0 +1,365 @@
+---
+title: "Reflected Ornstein–Uhlenbeck (ROU) Process"
+author: "Brolin O'Connell"
+date: "2025-06-17"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '2'
+  html_document:
+    toc: true
+    toc_depth: 2
+    theme: flatly
+  bookdown::pdf_document2:
+    latex_engine: xelatex
+    number_sections: true
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    fig_width: 6.5
+    fig_height: 4.2
+    fig_pos: H
+    keep_tex: true
+header-includes:
+- \usepackage[font=small,labelfont=bf]{caption}
+- \usepackage{float}
+- \usepackage{titlesec}
+- \titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}
+- \titlespacing*{\subsection}{0pt}{10pt plus 4pt minus 2pt}{4pt plus 2pt minus 2pt}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 6.5,
+  fig.height = 3.85,
+  fig.align = "center",
+  out.width = "100%"
+)
+
+library(tidyverse)
+library(Sim.DiffProc)
+```
+
+# Introduction
+
+The Ornstein–Uhlenbeck (OU) process is a classical mean-reverting stochastic process used in a variety of applications including physics, finance, and queueing theory. In this document, we simulate and analyze both the standard OU process and its **reflected** form (ROU) in one and two dimensions, examining key properties such as stationarity, ergodicity, and convergence.
+
+```{=latex} \vspace{10pt} ```
+
+---
+
+# 1. Ornstein–Uhlenbeck Process (1D)
+
+The 1D OU process is governed by the stochastic differential equation:
+
+$$
+dX_t = -\theta (X_t - \mu) \, dt + \sigma \, dW_t \tag{1}
+$$
+
+Where:
+- $X_t$: state at time $t$
+- $\mu$: long-run mean
+- $\theta > 0$: mean reversion speed
+- $\sigma$: volatility
+- $dW_t$: standard Brownian motion increment
+
+This process is stationary and has a well-defined limiting distribution:
+
+$$
+\text{Var}(X_t) = \frac{\sigma^2}{2\theta} \tag{2}
+$$
+
+(see Lemma 7, Huang & Pang, 2022)
+
+```{r ou-paths, echo=FALSE}
+# Parameters
+theta <- 0.7
+mu <- 1.0
+sigma <- 0.3
+x0 <- 0.0
+T <- 10
+N <- 1000
+dt <- T / N
+time <- seq(0, T, length.out = N)
+n_paths <- 5
+
+# OU path simulation
+simulate_ou <- function() {
+  x <- numeric(N)
+  x[1] <- x0
+  for (i in 2:N) {
+    dw <- rnorm(1, mean = 0, sd = sqrt(dt))
+    x[i] <- x[i-1] + theta * (mu - x[i-1]) * dt + sigma * dw
+  }
+  return(x)
+}
+
+ou_paths <- replicate(n_paths, simulate_ou())
+ou_df <- as.data.frame(ou_paths)
+ou_df$Time <- time
+ou_long <- pivot_longer(ou_df, -Time, names_to = "Path", values_to = "X")
+
+# Plot
+ggplot(ou_long, aes(x = Time, y = X, color = Path)) +
+  geom_line(size = 1) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Ornstein–Uhlenbeck Process (1D)",
+       x = "Time",
+       y = expression(X[t])) +
+  theme(legend.position = "bottom")
+```
+```{=latex} \vspace{10pt} ```
+
+---
+
+# 2. Stationarity and Ergodicity
+
+The OU process is **second-order stationary**: its mean and variance are time-invariant, and autocovariance depends only on lag. It is also **ergodic**, meaning:
+
+$$
+\lim_{T \to \infty} \frac{1}{T} \int_0^T X_t \, dt = \mathbb{E}[X_t] = \mu \tag{3}
+$$
+
+(see Theorem 2.4, Huang & Pang, 2022)
+```{=latex} \vspace{10pt} ```
+---
+
+# 3. Multivariate OU Process (2D)
+
+We now extend the OU process to two dimensions, where the state vector \( \mathbf{X}_t = (X_t, Y_t) \in \mathbb{R}^2 \) evolves as:
+
+$$
+d\mathbf{X}_t = -\Theta(\mathbf{X}_t - \boldsymbol{\mu})\, dt + \Sigma\, d\mathbf{W}_t \tag{4}
+$$
+
+Where:
+- $\Theta$: mean reversion matrix
+- $\Sigma$: diffusion matrix
+- $\boldsymbol{\mu}$: long-run mean vector
+- $d\mathbf{W}_t$: vector of independent Brownian motions
+
+```{r ou-2d, echo=FALSE}
+set.seed(123)
+Theta <- matrix(c(1.0, 0.3, 0.2, 0.8), nrow = 2, byrow = TRUE)
+mu_vec <- c(1, 1.5)
+Sigma <- matrix(c(0.2, 0.05, 0.05, 0.3), nrow = 2, byrow = TRUE)
+x_init <- c(0, 0)
+T <- 10
+dt <- 0.01
+N <- T / dt
+time <- seq(0, T, length.out = N)
+
+X <- matrix(0, nrow = N, ncol = 2)
+X[1, ] <- x_init
+for (i in 2:N) {
+  dW <- rnorm(2, mean = 0, sd = sqrt(dt))
+  drift <- -Theta %*% (X[i-1, ] - mu_vec)
+  diffusion <- Sigma %*% dW
+  X[i, ] <- X[i-1, ] + drift * dt + diffusion
+}
+
+df_2d <- data.frame(Time = time, X_t = X[,1], Y_t = X[,2])
+df_long <- pivot_longer(df_2d, cols = c("X_t", "Y_t"), names_to = "Component", values_to = "Value")
+
+ggplot(df_long, aes(x = Time, y = Value, color = Component)) +
+  geom_line(size = 1) +
+  theme_minimal(base_size = 14) +
+  labs(title = "2D Ornstein–Uhlenbeck Process Components",
+       x = "Time", y = "Value") +
+  theme(legend.title = element_blank())
+```
+```{=latex} \vspace{10pt} ```
+---
+
+### 4. Reflected Ornstein–Uhlenbeck Process (1D)
+
+We now simulate a **reflected OU process** in 1D, where the process is constrained to remain in \( \mathbb{R}_+ \). This imposes a Skorokhod reflection at the boundary \( X_t = 0 \), approximated here by taking the absolute value of a standard OU trajectory.
+```{r, echo=FALSE}
+library(Sim.DiffProc)
+library(tidyverse)
+
+# Parameters
+theta <- 0.7
+mu <- 0.0
+sigma <- 0.3
+T <- 10
+N <- 1000
+x0 <- -1.5  # Start below 0 for visible reflection
+
+# Simulate OU process
+y_path <- as.numeric(snssde1d(
+  drift = expression(theta * (mu - x)),
+  diffusion = expression(sigma),
+  M = 1, N = N, T = T, x0 = x0
+)$X)
+
+time <- seq(0, T, length.out = N + 1)
+x_reflected <- abs(y_path)
+
+# Dataframe for plotting
+df <- tibble(
+  Time = rep(time, 2),
+  Value = c(y_path, x_reflected),
+  Type = rep(c("Original OU", "Reflected |OU|"), each = N + 1)
+)
+
+# Plot
+ggplot(df, aes(x = Time, y = Value, color = Type, linetype = Type)) +
+  geom_line(linewidth = 1.2) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
+  theme_minimal(base_size = 14) +
+  scale_color_manual(values = c("Original OU" = "darkred", "Reflected |OU|" = "steelblue")) +
+  labs(title = "True Reflection of Ornstein–Uhlenbeck Process at x = 0",
+       x = "Time", y = expression(X[t]), color = "Process", linetype = "Process")
+```
+
+```{=latex} \vspace{10pt} ```
+
+
+---
+
+
+### 5. Local Time Approximation
+
+Following Huang & Pang (2022), the reflected process introduces a local time \( L_t \), which increases only when \( X_t = 0 \). To approximate this numerically, we accumulate the negative excursions of the unreflected path:
+
+```{r, echo=FALSE}
+# Approximate local time as accumulated negative excursions
+dt <- T / N
+L_t <- cumsum(ifelse(y_path < 0, abs(y_path), 0)) * dt
+
+# Add to the plot
+df_local <- tibble(Time = time, LocalTime = L_t)
+
+ggplot(df_local, aes(x = Time, y = LocalTime)) +
+  geom_line(color = "purple", linewidth = 1.2) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Accumulated Local Time Process L(t)",
+       x = "Time", y = expression(L[t]))
+```
+
+```{=latex} \vspace{10pt} ```
+
+---
+
+
+### 6. Reflected OU Process in \( \mathbb{R}_+^2 \)
+
+We extend the OU system to 2D and impose reflection into the nonnegative orthant by projecting any negative value to zero.
+
+```{r, echo=FALSE}
+library(tidyverse)
+
+# Parameters
+set.seed(123)
+T <- 10
+dt <- 0.01
+N <- T / dt
+time <- seq(0, T, length.out = N)
+
+# Initial state
+x_init <- c(-1, -2)  # Start below 0 for visibility
+
+# Mean vector
+mu_vec <- c(1, 1.5)
+
+# Mean reversion matrix (Theta)
+Theta <- matrix(c(1.0, 0.3,
+                  0.2, 0.8), nrow = 2, byrow = TRUE)
+
+# Volatility matrix (Sigma)
+Sigma <- matrix(c(0.2, 0.05,
+                  0.05, 0.3), nrow = 2, byrow = TRUE)
+
+# Simulate standard 2D OU process
+X <- matrix(0, nrow = N, ncol = 2)
+X[1, ] <- x_init
+
+for (i in 2:N) {
+  dW <- rnorm(2, mean = 0, sd = sqrt(dt))
+  drift <- -Theta %*% (X[i-1, ] - mu_vec)
+  diffusion <- Sigma %*% dW
+  X[i, ] <- X[i-1, ] + drift * dt + diffusion
+}
+
+# Reflect: componentwise absolute value
+X_reflected <- abs(X)
+
+# Combine both into long format
+df_original <- data.frame(Time = time, X_t = X[,1], Y_t = X[,2], Type = "Original")
+df_reflected <- data.frame(Time = time, X_t = X_reflected[,1], Y_t = X_reflected[,2], Type = "Reflected")
+
+df_combined <- bind_rows(df_original, df_reflected) %>%
+  pivot_longer(cols = c("X_t", "Y_t"), names_to = "Component", values_to = "Value")
+
+# Plot
+ggplot(df_combined, aes(x = Time, y = Value, color = interaction(Type, Component), linetype = Type)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.4) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Original vs Reflected 2D OU Process (|Xt| and |Yt|)",
+    x = "Time", y = "Value",
+    color = "Process + Component",
+    linetype = "Path Type"
+  )
+```
+
+```{=latex} \vspace{10pt} ```
+
+--- 
+
+### 7. Autocorrelation Function (ACF)
+
+```{r, echo=FALSE}
+# Long OU path for ACF
+set.seed(42)
+acf_path <- simulate_ou()
+acf(acf_path, lag.max = 50, main = "Autocorrelation of OU Process")
+```
+
+OU processes exhibit exponentially decaying autocorrelations: \( \rho(\tau) = e^{-\theta \tau} \).
+
+```{=latex} \vspace{10pt} ```
+
+--- 
+
+### 8. Stationary Distribution Convergence
+
+We compare empirical distribution at time \( T \) to the theoretical stationary normal:
+
+```{r, echo=FALSE}
+# Stationary distribution simulation
+n_samples <- 10000
+final_values <- replicate(n_samples, simulate_ou()[N])
+df_final <- tibble(Value = final_values)
+
+# Theoretical parameters
+mu_theoretical <- mu
+sd_theoretical <- sqrt(sigma^2 / (2 * theta))
+
+# Plot
+ ggplot(df_final, aes(x = Value)) +
+  geom_histogram(aes(y = ..density..), bins = 60, fill = "#1f78b4", alpha = 0.6) +
+  stat_function(fun = dnorm, args = list(mean = mu_theoretical, sd = sd_theoretical),
+                color = "darkred", linewidth = 1.2) +
+  theme_minimal(base_size = 15) +
+  labs(title = "Empirical Stationary Distribution vs Theoretical Normal",
+       x = "Final Value of Xₜ", y = "Density") +
+  annotate("text", x = mu + 0.5, y = 1,
+           label = paste0("N(", mu, ", ", round(sd_theoretical^2, 3), ")"),
+           color = "darkred", size = 4)
+```
+
+> Huang & Pang (2022) confirm the convergence of the ROU process toward a stationary distribution under bounded local time and ergodicity (Theorem 2.4).
+
+
+
+
+
+
+
+
