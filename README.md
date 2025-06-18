@@ -1,27 +1,25 @@
 # Reflected Ornstein–Uhlenbeck (ROU) Process Simulations
 
-This repository contains R code and simulation output illustrating the behavior of the Reflected Ornstein–Uhlenbeck (ROU) process in one and two dimensions.
+This repository contains R code and simulation output demonstrating the behavior of the Reflected Ornstein–Uhlenbeck (ROU) process in one and two dimensions.
 
 ## Disclaimer and Attribution
 
-All theoretical foundations, equations, and analytical results referenced in this repository are derived directly from the original scholarly work by Huang & Pang (2022). This repository does **not** claim authorship of any original theory or results from that paper.
+All theoretical concepts, mathematical formulations, and analytical results presented or referenced herein are derived entirely from the original scholarly work by Huang & Pang (2022). This repository does **not** claim authorship or modification of any theoretical contributions, derivations, or results from that work.
 
-> **Full credit** for the theoretical development, mathematical formulations, and findings belongs solely to the authors of the original paper.
+> **All credit** for the underlying theory, derivations, and conclusions belongs exclusively to the original authors.
 
-My contribution is limited to the development of **original simulations and visualizations in R** designed to reproduce, illustrate, and explore the dynamics of the ROU process based on the cited work.
+The content in this repository is limited to the development of **independent simulations, visualizations, and code written in R** that reproduce or illustrate selected results and behaviors described in the cited paper. These simulations are intended solely as an academic aid.
 
 ## Included Materials
 
-For completeness and educational purposes, a copy of the original manuscript by Huang & Pang (2022) has been included in this repository under fair use for academic reference.
+For reference and educational use, a copy of the original manuscript by Huang & Pang (2022) has been included in this repository under fair use guidelines. No changes have been made to the manuscript.
 
 ## Purpose
 
-This repository is for educational and illustrative use only. It is intended to support academic understanding of the ROU process and should not be interpreted as original research or a modification of the authors' original work.
+This repository is intended strictly for educational and illustrative purposes. It should not be interpreted as original research, nor as an adaptation, critique, or alternative to the cited work. The simulations serve to support understanding of the ROU process in an academic or instructional setting.
 
 ## Citation
 
-If you refer to the theoretical content, please cite:
+If you refer to the theoretical results or methodology, please cite:
 
-> Huang, X., & Pang, J. (2022). *On the Reflected Ornstein–Uhlenbeck Process in Multiple Dimensions*. [Insert journal name, volume, pages or preprint link].
-
----
+> Huang, X., & Pang, J. (2022). *On the Reflected Ornstein–Uhlenbeck Process in Multiple Dimensions*. [Insert journal name, volume, page range, or preprint link].
